@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
+import * as api from '../api/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -8,6 +9,7 @@ interface AuthContextType {
   register: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,58 +17,81 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const userData = await api.getMe(token);
+          setUser(userData);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error("Failed to restore session:", error);
+          localStorage.removeItem('token');
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = storedUsers.find(
-      (u: any) => u.email === email && u.password === password
-    );
-
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser; // Don't store password in current user session
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+    try {
+      const data = await api.login(email, password);
+      localStorage.setItem('token', data.access_token);
+      
+      const userData = await api.getMe(data.access_token);
+      setUser(userData);
       setIsAuthenticated(true);
+      
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
+      });
       return true;
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
+      });
+      return false;
     }
-    return false;
   };
 
   const register = async (email: string, password: string, name?: string): Promise<boolean> => {
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const userExists = storedUsers.some((u: any) => u.email === email);
-
-    if (userExists) {
-      return false; // User with this email already exists
+    try {
+      await api.register(email, password, name);
+      // Auto-login after registration
+      return await login(email, password);
+    } catch (error: any) {
+       toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: error.message || "Something went wrong. Please try again.",
+      });
+      return false;
     }
-
-    const newUser = { id: uuidv4(), email, password, name };
-    const updatedUsers = [...storedUsers, newUser];
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-    setIsAuthenticated(true);
-    return true;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully.",
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

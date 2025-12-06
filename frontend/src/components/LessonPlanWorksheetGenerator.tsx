@@ -48,7 +48,7 @@ const LessonPlanWorksheetGenerator: React.FC<LessonPlanWorksheetGeneratorProps> 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName.replace('.txt', '.doc'); // Simulate Word document
+    a.download = fileName ? fileName.replace('.txt', '.doc') : 'document.doc'; // Simulate Word document
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -167,7 +167,7 @@ const LessonPlanWorksheetGenerator: React.FC<LessonPlanWorksheetGeneratorProps> 
           {lessonPlans.map((lp) => (
             <Card key={lp.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg">{lp.fileName.replace('.txt', '')}</CardTitle>
+                <CardTitle className="text-lg">{lp.fileName ? lp.fileName.replace('.txt', '') : 'Untitled'}</CardTitle>
                 <div className="flex gap-2">
                   <Button variant="outline" size="icon" onClick={() => setViewingContent({ type: 'lessonPlan', content: lp.content, title: lp.fileName })}>
                     <FileText className="h-4 w-4" />
@@ -198,7 +198,7 @@ const LessonPlanWorksheetGenerator: React.FC<LessonPlanWorksheetGeneratorProps> 
           {worksheets.map((ws) => (
             <Card key={ws.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg">{ws.fileName.replace('.txt', '')}</CardTitle>
+                <CardTitle className="text-lg">{ws.fileName ? ws.fileName.replace('.txt', '') : 'Untitled'}</CardTitle>
                 <div className="flex gap-2">
                   <Button variant="outline" size="icon" onClick={() => setViewingContent({ type: 'worksheet', content: ws.content, title: ws.fileName })}>
                     <FileText className="h-4 w-4" />

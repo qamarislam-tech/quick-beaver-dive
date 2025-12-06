@@ -37,4 +37,6 @@ export interface ParentUpdate {
   fileName: string;
   draftText: string;
   createdAt: string;
+  marks?: string;
+  comments?: string;
 }

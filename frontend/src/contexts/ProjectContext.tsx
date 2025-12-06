@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Project } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
+import * as api from '../api/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProjectContextType {
   projects: Project[];
@@ -16,85 +17,102 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      const storedProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-      setProjects(storedProjects.filter((p: Project) => p.userId === user.id));
-    } else {
-      setProjects([]);
-    }
-  }, [isAuthenticated, user]);
+    const fetchProjects = async () => {
+      const token = localStorage.getItem('token');
+      if (isAuthenticated && user?.id && token) {
+        try {
+          const fetchedProjects = await api.getProjects(token);
+          setProjects(fetchedProjects);
+        } catch (error) {
+          console.error("Failed to fetch projects", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load projects."
+          });
+        }
+      } else {
+        setProjects([]);
+      }
+    };
 
-  const saveProjectsToLocalStorage = (updatedProjects: Project[]) => {
-    const allProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-    const otherUsersProjects = allProjects.filter((p: Project) => p.userId !== user?.id);
-    localStorage.setItem('projects', JSON.stringify([...otherUsersProjects, ...updatedProjects]));
-  };
+    fetchProjects();
+  }, [isAuthenticated, user, toast]);
 
   const createProject = async (name: string): Promise<Project | null> => {
-    if (!user?.id) return null;
+    const token = localStorage.getItem('token');
+    if (!user?.id || !token) return null;
 
-    const newProject: Project = {
-      id: uuidv4(),
-      userId: user.id,
-      name,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const updatedProjects = [...projects, newProject];
-    setProjects(updatedProjects);
-    saveProjectsToLocalStorage(updatedProjects);
-    return newProject;
+    try {
+      const newProject = await api.createProject(token, name);
+      setProjects([...projects, newProject]);
+      toast({
+        title: "Success",
+        description: "Project created successfully."
+      });
+      return newProject;
+    } catch (error) {
+      console.error("Failed to create project", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create project."
+      });
+      return null;
+    }
   };
 
   const renameProject = async (projectId: string, newName: string): Promise<boolean> => {
-    if (!user?.id) return false;
+    const token = localStorage.getItem('token');
+    if (!user?.id || !token) return false;
 
-    const updatedProjects = projects.map((p) =>
-      p.id === projectId && p.userId === user.id
-        ? { ...p, name: newName, updatedAt: new Date().toISOString() }
-        : p
-    );
-    if (JSON.stringify(updatedProjects) === JSON.stringify(projects)) {
-      return false; // No change or project not found for user
+    try {
+      const updatedProject = await api.updateProject(token, projectId, newName);
+      setProjects(projects.map(p => p.id === projectId ? updatedProject : p));
+      toast({
+        title: "Success",
+        description: "Project renamed successfully."
+      });
+      return true;
+    } catch (error) {
+      console.error("Failed to rename project", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to rename project."
+      });
+      return false;
     }
-    setProjects(updatedProjects);
-    saveProjectsToLocalStorage(updatedProjects);
-    return true;
   };
 
   const deleteProject = async (projectId: string): Promise<boolean> => {
-    if (!user?.id) return false;
+    const token = localStorage.getItem('token');
+    if (!user?.id || !token) return false;
 
-    const initialLength = projects.length;
-    const updatedProjects = projects.filter((p) => p.id !== projectId || p.userId !== user.id);
-    
-    if (updatedProjects.length === initialLength) {
-      return false; // Project not found or not owned by user
+    try {
+      await api.deleteProject(token, projectId);
+      setProjects(projects.filter(p => p.id !== projectId));
+      toast({
+        title: "Success",
+        description: "Project deleted successfully."
+      });
+      return true;
+    } catch (error) {
+      console.error("Failed to delete project", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete project."
+      });
+      return false;
     }
-
-    setProjects(updatedProjects);
-    saveProjectsToLocalStorage(updatedProjects);
-    
-    // Also delete associated lesson plans, worksheets, and parent updates
-    const allLessonPlans = JSON.parse(localStorage.getItem('lessonPlans') || '[]');
-    const updatedLessonPlans = allLessonPlans.filter((lp: LessonPlan) => lp.projectId !== projectId);
-    localStorage.setItem('lessonPlans', JSON.stringify(updatedLessonPlans));
-
-    const allWorksheets = JSON.parse(localStorage.getItem('worksheets') || '[]');
-    const updatedWorksheets = allWorksheets.filter((ws: Worksheet) => ws.projectId !== projectId);
-    localStorage.setItem('worksheets', JSON.stringify(updatedWorksheets));
-
-    const allParentUpdates = JSON.parse(localStorage.getItem('parentUpdates') || '[]');
-    const updatedParentUpdates = allParentUpdates.filter((pu: ParentUpdate) => pu.projectId !== projectId);
-    localStorage.setItem('parentUpdates', JSON.stringify(updatedParentUpdates));
-
-    return true;
   };
 
   const getProjectById = (projectId: string): Project | undefined => {
-    return projects.find((p) => p.id === projectId && p.userId === user?.id);
+    return projects.find((p) => p.id === projectId);
   };
 
   return (
