@@ -55,11 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "You have successfully logged in.",
       });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Please check your credentials and try again.";
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: errorMessage,
       });
       return false;
     }
@@ -70,11 +71,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await api.register(email, password, name);
       // Auto-login after registration
       return await login(email, password);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
        toast({
         variant: "destructive",
         title: "Registration failed",
-        description: error.message || "Something went wrong. Please try again.",
+        description: errorMessage,
       });
       return false;
     }

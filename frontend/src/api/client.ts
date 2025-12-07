@@ -158,7 +158,7 @@ export async function getLessonPlans(token: string, projectId: string) {
   }
 
   const data = await response.json();
-  return data.map((item: any) => ({
+  return data.map((item: { id: string; project_id: string; file_name: string; content: string; export_format: string; created_at: string }) => ({
     id: item.id,
     projectId: item.project_id,
     fileName: item.file_name,
@@ -222,7 +222,7 @@ export async function getWorksheets(token: string, projectId: string) {
   }
 
   const data = await response.json();
-  return data.map((item: any) => ({
+  return data.map((item: { id: string; project_id: string; file_name: string; content: string; export_format: string; created_at: string }) => ({
     id: item.id,
     projectId: item.project_id,
     fileName: item.file_name,
@@ -286,7 +286,7 @@ export async function getParentUpdates(token: string, projectId: string) {
   }
 
   const data = await response.json();
-  return data.map((item: any) => ({
+  return data.map((item: { id: string; project_id: string; student_name: string; file_name: string; draft_text: string; created_at: string; marks: number; comments: string }) => ({
     id: item.id,
     projectId: item.project_id,
     studentName: item.student_name,
@@ -313,7 +313,7 @@ export async function generateParentUpdates(token: string, projectId: string, st
   }
 
   const data = await response.json();
-  return data.map((item: any) => ({
+  return data.map((item: { id: string; project_id: string; student_name: string; file_name: string; draft_text: string; created_at: string; marks: number; comments: string }) => ({
     id: item.id,
     projectId: item.project_id,
     studentName: item.student_name,

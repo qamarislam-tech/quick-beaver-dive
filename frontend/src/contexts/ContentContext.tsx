@@ -58,12 +58,6 @@ export const ContentProvider = ({ children, projectId }: { children: ReactNode; 
     fetchContent();
   }, [isAuthenticated, user, projectId]);
 
-  const saveToLocalStorage = (key: string, data: any[]) => {
-    const allItems = JSON.parse(localStorage.getItem(key) || '[]');
-    const otherProjectsItems = allItems.filter((item: any) => item.projectId !== projectId);
-    localStorage.setItem(key, JSON.stringify([...otherProjectsItems, ...data]));
-  };
-
   const createLessonPlan = async (projectId: string, subject: string, level: string, topic: string): Promise<LessonPlan | null> => {
     if (!user?.id) return null;
     try {
@@ -117,14 +111,6 @@ export const ContentProvider = ({ children, projectId }: { children: ReactNode; 
       toast.error("Failed to generate parent updates.");
       return null;
     }
-  };
-
-  const deleteContentItem = (key: string, id: string, setter: React.Dispatch<React.SetStateAction<any[]>>) => {
-    const allItems = JSON.parse(localStorage.getItem(key) || '[]');
-    const updatedItems = allItems.filter((item: any) => item.id !== id);
-    localStorage.setItem(key, JSON.stringify(updatedItems));
-    setter((prev: any[]) => prev.filter((item) => item.id !== id));
-    return true;
   };
 
   const deleteLessonPlan = async (id: string): Promise<boolean> => {
