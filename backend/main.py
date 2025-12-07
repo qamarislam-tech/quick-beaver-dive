@@ -1,8 +1,8 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .core.config import settings
-from .db.mongodb import db
+from backend.core.config import settings
+from backend.db.mongodb import db
 from backend.api.routers import auth, projects, content
 
 @asynccontextmanager
