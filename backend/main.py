@@ -47,3 +47,7 @@ async def health_check():
 @app.get("/")
 async def root():
     return {"message": "Welcome to Quick Beaver Dive API"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), reload=True)
