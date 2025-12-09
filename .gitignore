@@ -26,7 +26,6 @@ MANIFEST
 venv/
 env/
 ENV/
-.env
 .venv
 env.bak/
 venv.bak/
@@ -64,8 +63,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -92,3 +89,4 @@ frontend/*.local
 *.njsproj
 *.sln
 *.sw?
+config.bat
